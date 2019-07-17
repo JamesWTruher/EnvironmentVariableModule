@@ -136,6 +136,10 @@ Describe 'Get-EnvironmentVariable' {
         It "Produces an error for User scope on non-Windows" -skip:($IsWindows) {
             { Get-EnvironmentVariable -Name "badvariable" -Scope User } | Should -Throw -ErrorId "ParameterBindingFailed,Microsoft.PowerShell.Commands.GetEnvironmentVariableCommand"
         }
+
+        It "Produces an error for Machine scope on non-Windows" -skip:($IsWindows) {
+            { Get-EnvironmentVariable -Name "badvariable" -Scope Machine } | Should -Throw -ErrorId "ParameterBindingFailed,Microsoft.PowerShell.Commands.GetEnvironmentVariableCommand"
+        }
     }
 
 }
@@ -166,8 +170,12 @@ Describe 'Get-EnvironmentVariable Elevated tests' -tag RequiresAdminOnWindows {
         }
     }
 
-    It "Produces an error for Machine scope on non-Windows" -skip:($IsWindows) {
-        { Get-EnvironmentVariable -Name "badvariable" -Scope Machine } | Should -Throw -ErrorId "ParameterBindingFailed,Microsoft.PowerShell.Commands.GetEnvironmentVariableCommand"
+    It "Can retrieve variable in the Machine scope" -skip:(!$IsWindows) {
+        $scope = "machine"
+        $expectedValue = "fGhIj"
+        New-ItemProperty -Path $MachineScopeHive -Name ${varName} -Value $expectedValue
+        Get-EnvironmentVariable -Scope $scope -Name ${varName} -ValueOnly | Should -BeExactly ${expectedValue}
     }
+
 }
 

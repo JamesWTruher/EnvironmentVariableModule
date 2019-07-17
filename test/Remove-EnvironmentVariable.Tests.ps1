@@ -2,11 +2,11 @@ Describe 'Remove-EnvironmentVariable' {
     BeforeAll {
         $MachineScopeHive = 'hklm:\System\CurrentControlSet\Control\Session Manager\Environment'
         $UserScopeHive = 'hkcu:\environment'
-    }
-    BeforeEach {
         if ( $PSVersionTable.PSVersion.Major -lt 6 ) {
             $IsWindows = $true
         }
+    }
+    BeforeEach {
         $varName = [guid]::NewGuid()
     }
     AfterEach {
@@ -75,10 +75,14 @@ Describe 'Remove-EnvironmentVariable' {
         $after | Should -BeExactly $before
     }
 
-    It "Can remove an environment in Machine scope" -skip:(! $IsWindows) {
+    It "Should produce an error if Machine scope is provided on non-Windows"  -skip:$IsWindows {
+        { Remove-EnvironmentVariable -Name "badvariable" -Scope Machine } | Should -Throw -ErrorId "ParameterBindingFailed,Microsoft.PowerShell.Commands.RemoveEnvironmentVariableCommand"
     }
 
     It "Can remove an environment in User scope" -skip:(! $IsWindows) {
+        $expectedValue = "EfGhI"
+        New-ItemProperty -Path ${UserScopeHive} -Name ${varName} -Value $expectedValue
+        Get-EnvironmentVariable -Scope User -Name ${varName} -Value | Should -BeExactly $expectedValue
     }
 }
 
@@ -86,18 +90,18 @@ Describe 'Remove-EnvironmentVariable elevated tests' -tag RequiresAdminOnWindows
     BeforeAll {
         $MachineScopeHive = 'hklm:\System\CurrentControlSet\Control\Session Manager\Environment'
         $UserScopeHive = 'hkcu:\environment'
-    }
-    BeforeEach {
         if ( $PSVersionTable.PSVersion.Major -lt 6 ) {
             $IsWindows = $true
         }
+    }
+    BeforeEach {
         $varName = [guid]::NewGuid()
     }
     AfterEach {
         if ( Test-Path "env:$varName" ) {
             Remove-Item "env:$varName"
         }
-        if ( $Windows ) {
+        if ( $IsWindows ) {
             if ( Get-ItemProperty -Path $UserScopeHive -Name $varName -ErrorAction SilentlyContinue ) {
                 Remove-ItemProperty -Path $UserScopeHive -Name ${varName}
             }
@@ -107,7 +111,12 @@ Describe 'Remove-EnvironmentVariable elevated tests' -tag RequiresAdminOnWindows
         }
     }
 
-    It "Should produce an error if Machine scope is provided on non-Windows"  -skip:$IsWindows {
-        { Remove-EnvironmentVariable -Name "badvariable" -Scope Machine } | Should -Throw -ErrorId "ParameterBindingFailed,Microsoft.PowerShell.Commands.RemoveEnvironmentVariableCommand"
+    It "Can remove an environment in Machine scope" -skip:(! $IsWindows) {
+        $expectedValue = "dEfGh"
+        New-ItemProperty -Path ${MachineScopeHive} -Name ${varName} -Value $expectedValue
+        Get-EnvironmentVariable -Scope Machine -Name ${varName} -Value | Should -BeExactly $expectedValue
+        Remove-EnvironmentVariable -Scope Machine -Name ${varName}
+        Get-ItemProperty -Path ${MachineScopeHive} -Name ${varName} -ErrorAction Ignore | Should -BeNullOrEmpty
     }
+
 }
