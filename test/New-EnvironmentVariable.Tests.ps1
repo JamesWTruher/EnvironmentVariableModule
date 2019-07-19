@@ -65,7 +65,7 @@ Describe 'New-EnvironmentVariable' {
 
 }
 
-Describe 'Remove-EnvironmentVariable elevated tests' -tag RequiresAdminOnWindows {
+Describe 'New-EnvironmentVariable elevated tests' -tag RequiresAdminOnWindows {
     BeforeAll {
         $MachineScopeHive = 'hklm:\System\CurrentControlSet\Control\Session Manager\Environment'
         $UserScopeHive = 'hkcu:\environment'
@@ -90,9 +90,9 @@ Describe 'Remove-EnvironmentVariable elevated tests' -tag RequiresAdminOnWindows
         }
     }
 
-    It "Can create an environment variable in the Machine scope" -skip:$(!$IsWindows) {
+    It "Can add an environment variable in the Machine scope" -skip:$(!$IsWindows) {
         $expectedValue = "jKlmN"
-        New-ItemProperty -Scope Machine -Name ${varName} -Value $expectedValue
+        New-EnvironmentVariable -Scope Machine -Name ${varName} -Value $expectedValue
         (Get-ItemProperty -Path $MachineScopeHive -Name ${varName}).${varName} | Should -BeExactly $expectedValue
     }
 }
